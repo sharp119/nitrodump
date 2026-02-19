@@ -1,0 +1,147 @@
+Metadata-Version: 2.4
+Name: codeium-status
+Version: 0.1.0
+Summary: Query Codeium language server for user status and rate limits
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: pydantic>=2.12.5
+Requires-Dist: requests>=2.32.5
+
+# codeium-status
+
+A Python tool to query the Codeium language server for user status, credits, and AI model rate limits.
+
+## Features
+
+- Automatically discovers the running Codeium language server process
+- Extracts authentication tokens and ports dynamically
+- Displays user account info and plan details
+- Shows available prompt and flow credits
+- Lists all AI models with current rate limit status
+- Works with Antigravity (Google's AI IDE) and other Codeium-based editors
+
+## Installation
+
+### Using uv (recommended)
+
+```bash
+uv pip install -e /path/to/codeium-status
+```
+
+### Using pip
+
+```bash
+pip install /path/to/codeium-status
+```
+
+## Usage
+
+Once installed, run the CLI:
+
+```bash
+codeium-status
+```
+
+Example output:
+
+```
+==================================
+       Codeium User Status
+==================================
+
+User: Sharp Mouse (sharpmouse123@gmail.com)
+Plan: Google AI Pro
+
+Credits:
+  Prompt: 500 / 50000
+  Flow:   100 / 150000
+
+==================================
+      Model Rate Limits
+==================================
+
+Claude Opus 4.6 (Thinking):
+  Remaining: 80%
+  Reset: 2026-02-19T12:04:51Z
+
+Claude Sonnet 4.5:
+  Remaining: 80%
+  Reset: 2026-02-19T12:04:51Z
+
+Gemini 3 Flash:
+  Remaining: 100%
+  Reset: 2026-02-19T14:28:40Z
+
+Gemini 3 Pro (High):
+  Remaining: 100%
+  Reset: 2026-02-19T14:28:40Z
+
+==================================
+```
+
+## Development
+
+Install development dependencies:
+
+```bash
+uv sync --group dev
+```
+
+Run tests:
+
+```bash
+uv run pytest
+```
+
+Run tests with coverage:
+
+```bash
+uv run pytest --cov=codeium_status --cov-report=term-missing
+```
+
+Format code:
+
+```bash
+uv run ruff check src/ tests/
+uv run ruff format src/ tests/
+```
+
+## Requirements
+
+- Python 3.12+
+- Codeium language server running locally (started automatically by your IDE)
+- macOS ARM64 (currently supports `language_server_macos_arm`)
+
+## How it works
+
+1. The script finds the Codeium language server process using `pgrep`
+2. Extracts the CSRF token from the process command line
+3. Finds the local HTTPS port using `lsof`
+4. Makes a gRPC-web request to the `GetUserStatus` endpoint
+5. Parses the JSON response and displays a formatted summary
+
+## Project structure
+
+```
+codeium-status/
+├── src/
+│   └── codeium_status/
+│       ├── __init__.py      # Package init
+│       ├── cli.py           # Command-line interface
+│       ├── client.py        # API client
+│       ├── formatter.py     # Output formatting
+│       └── models.py        # Pydantic data models
+├── tests/
+│   ├── conftest.py          # Pytest config
+│   ├── test_client.py       # Client tests
+│   ├── test_formatter.py    # Formatter tests
+│   └── test_models.py       # Model tests
+├── docs/
+│   └── api.md               # API documentation
+├── pyproject.toml           # Project config
+└── README.md                # This file
+```
+
+## License
+
+MIT
