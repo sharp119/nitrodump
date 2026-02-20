@@ -9,6 +9,7 @@ A Python CLI tool to quickly dump Antigravity/Codeium account status, credits, a
 - **Account info**: Displays user account info and plan details
 - **Credit tracking**: Shows available prompt and flow credits
 - **Model rate limits**: Lists all AI models with current rate limit status and reset times
+- **Multiple output formats**: Table, JSON, or raw network response
 - **Scheduled monitoring**: Built-in scheduler for automatic status checks (30min to 12hr intervals)
 - **Desktop notifications**: macOS notifications with status updates
 - **Logging**: Timestamped logs of all scheduled runs
@@ -39,16 +40,27 @@ pip install -e /path/to/nitrodump
 
 ```bash
 cd /path/to/nitrodump
-uv tool install
+uv tool install .
 ```
 
-This installs the `nitrodump` command globally and updates automatically when you pull changes.
+This installs the `nitrodump` command globally.
 
 ## Usage
 
-### Basic Status Check
+### Output Formats
 
-Run a one-time status check:
+```bash
+# Default: formatted table output
+nitrodump
+
+# Structured JSON (from Pydantic model, snake_case keys)
+nitrodump --json
+
+# Raw network response (direct from API, camelCase keys)
+nitrodump --raw
+```
+
+### Default Output (Table)
 
 ```bash
 nitrodump
@@ -71,6 +83,80 @@ Flow:   95 / 150000
 │ Gemini 3 Pro (High)         │ 100%      │ 2026-02-19T14:28:40Z│
 └─────────────────────────────┴───────────┴─────────────────────┘
 ```
+
+### JSON Output (`--json`)
+
+Clean, structured JSON from the validated Pydantic model:
+
+```bash
+nitrodump --json
+```
+
+```json
+{
+  "user_status": {
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "user_tier": {
+      "id": "g1-pro-tier",
+      "name": "Google AI Pro"
+    },
+    "plan_status": {
+      "plan_info": {
+        "plan_name": "Pro",
+        "monthly_prompt_credits": 50000,
+        "monthly_flow_credits": 150000
+      }
+    },
+    "available_prompt_credits": 450,
+    "available_flow_credits": 95,
+    "cascade_model_config_data": {
+      "client_model_configs": [
+        {
+          "label": "Claude Opus 4.6 (Thinking)",
+          "quota_info": {
+            "remaining_fraction": 0.8,
+            "reset_time": "2026-02-19T12:04:51Z"
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+### Raw Output (`--raw`)
+
+The raw network response from the Codeium API (camelCase keys, all fields):
+
+```bash
+nitrodump --raw
+```
+
+```json
+{
+  "userStatus": {
+    "name": "Jane Doe",
+    "email": "jane@example.com",
+    "disableTelemetry": true,
+    "planStatus": {
+      "planInfo": {
+        "teamsTier": "TEAMS_TIER_PRO",
+        "planName": "Pro",
+        "monthlyPromptCredits": 50000,
+        "hasAutocompleteFastMode": true,
+        "cascadeWebSearchEnabled": true
+      },
+      "availablePromptCredits": 450
+    },
+    "cascadeModelConfigData": {
+      "clientModelConfigs": [...]
+    }
+  }
+}
+```
+
+Use `--raw` to see **all** available fields from the API, including those not shown in the default output.
 
 ### Scheduled Monitoring
 
@@ -221,7 +307,8 @@ nitrodump/
 │   └── test_scheduler.py    # Scheduler tests
 ├── docs/
 │   ├── api.md               # API documentation
-│   └── architecture.md      # Architecture overview
+│   ├── architecture.md      # Architecture overview
+│   └── setup.md             # Setup guide
 ├── pyproject.toml           # Project config
 └── README.md                # This file
 ```

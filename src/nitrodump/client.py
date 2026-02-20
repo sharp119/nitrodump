@@ -2,13 +2,18 @@
 
 import subprocess
 import json
+import warnings
 from typing import Optional
 from pathlib import Path
 
 import requests
 from requests.exceptions import RequestException
+from urllib3.exceptions import InsecureRequestWarning
 
 from nitrodump.models import GetUserStatusResponse
+
+# Suppress SSL warnings for localhost (self-signed cert)
+warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
 class CodeiumServerError(Exception):
@@ -49,7 +54,9 @@ class CodeiumClient:
                 check=False,
             )
             if result.returncode == 0 and result.stdout.strip():
-                return int(result.stdout.strip())
+                # If multiple processes match, grab the first one
+                pids = result.stdout.strip().splitlines()
+                return int(pids[0])
         except (subprocess.SubprocessError, ValueError):
             pass
         return None
@@ -104,7 +111,7 @@ class CodeiumClient:
             # Look for our process listening on localhost
             for line in result.stdout.splitlines():
                 parts = line.split()
-                if len(parts) >= 2 and "language_" in parts[0]:
+                if len(parts) >= 2 and parts[1] == str(pid):
                     for part in parts:
                         if part.startswith("127.0.0.1:"):
                             return int(part.split(":")[1])
@@ -135,11 +142,16 @@ class CodeiumClient:
             if self._port is None:
                 raise CodeiumServerError("Could not find server listening port")
 
-    def get_user_status(self) -> GetUserStatusResponse:
+    def get_user_status(self, return_raw: bool = False):
         """Get the current user status from the Codeium server.
 
+        Args:
+            return_raw: If True, returns raw dict and response object. If False,
+                        returns validated GetUserStatusResponse model.
+
         Returns:
-            The user status response containing plan info, credits, and model quotas.
+            If return_raw=False: GetUserStatusResponse with plan info, credits, and model quotas.
+            If return_raw=True: Tuple of (raw dict, requests.Response object).
 
         Raises:
             CodeiumServerError: If the server cannot be contacted.
@@ -174,6 +186,8 @@ class CodeiumClient:
 
         try:
             data = response.json()
+            if return_raw:
+                return data, response
             return GetUserStatusResponse.model_validate(data)
         except Exception as e:
             raise CodeiumServerError(f"Failed to parse response: {e}") from e

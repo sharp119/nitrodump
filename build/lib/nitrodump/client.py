@@ -2,13 +2,18 @@
 
 import subprocess
 import json
+import warnings
 from typing import Optional
 from pathlib import Path
 
 import requests
 from requests.exceptions import RequestException
+from urllib3.exceptions import InsecureRequestWarning
 
 from nitrodump.models import GetUserStatusResponse
+
+# Suppress SSL warnings for localhost (self-signed cert)
+warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
 class CodeiumServerError(Exception):
@@ -135,11 +140,16 @@ class CodeiumClient:
             if self._port is None:
                 raise CodeiumServerError("Could not find server listening port")
 
-    def get_user_status(self) -> GetUserStatusResponse:
+    def get_user_status(self, return_raw: bool = False):
         """Get the current user status from the Codeium server.
 
+        Args:
+            return_raw: If True, returns raw dict and response object. If False,
+                        returns validated GetUserStatusResponse model.
+
         Returns:
-            The user status response containing plan info, credits, and model quotas.
+            If return_raw=False: GetUserStatusResponse with plan info, credits, and model quotas.
+            If return_raw=True: Tuple of (raw dict, requests.Response object).
 
         Raises:
             CodeiumServerError: If the server cannot be contacted.
@@ -174,6 +184,8 @@ class CodeiumClient:
 
         try:
             data = response.json()
+            if return_raw:
+                return data, response
             return GetUserStatusResponse.model_validate(data)
         except Exception as e:
             raise CodeiumServerError(f"Failed to parse response: {e}") from e

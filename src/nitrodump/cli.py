@@ -1,6 +1,7 @@
 """Command-line interface for nitrodump."""
 
 import argparse
+import json
 import sys
 from datetime import datetime
 
@@ -21,9 +22,24 @@ def cmd_run(args) -> int:
     client = CodeiumClient()
 
     try:
-        response = client.get_user_status()
-        print(format_full_status(response.user_status))
-        return 0
+        # Raw mode - output the raw network response
+        if getattr(args, 'raw', False):
+            data, response = client.get_user_status(return_raw=True)
+            print(json.dumps(data, indent=2))
+            return 0
+
+        # JSON mode - output structured JSON from Pydantic model
+        elif getattr(args, 'json', False):
+            response = client.get_user_status()
+            print(response.model_dump_json(indent=2))
+            return 0
+
+        # Default - formatted table output
+        else:
+            response = client.get_user_status()
+            print(format_full_status(response.user_status))
+            return 0
+
     except CodeiumServerError as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
@@ -153,10 +169,23 @@ def parse_args(argv=None):
         description="Quick dump of Antigravity/Codeium account status and rate limits.",
     )
 
+    # Output format flags
+    output_group = parser.add_mutually_exclusive_group()
+    output_group.add_argument(
+        "--json",
+        action="store_true",
+        help="Output as structured JSON",
+    )
+    output_group.add_argument(
+        "--raw",
+        action="store_true",
+        help="Output raw network response JSON",
+    )
+
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
-    # Default status command (no arguments)
-    parser.set_defaults(func=cmd_run, command="run")
+    # Default status command (no arguments needed)
+    parser.set_defaults(func=cmd_run)
 
     # Schedule subcommand
     schedule_parser = subparsers.add_parser(
