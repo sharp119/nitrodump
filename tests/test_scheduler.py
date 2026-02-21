@@ -72,4 +72,6 @@ class TestPaths:
 
     def test_plist_path(self):
         plist_path = scheduler.get_plist_path()
-        assert plist_path == Path.home() / "Library" / "LaunchAgents" / "com.nitrodump.scheduler.plist"
+        assert (
+            plist_path == Path.home() / "Library" / "LaunchAgents" / "com.nitrodump.scheduler.plist"
+        )

@@ -130,4 +130,7 @@ def test_full_response_structure():
     response = GetUserStatusResponse.model_validate(response_data)
     assert response.user_status.name == "Sharp Mouse"
     assert len(response.user_status.cascade_model_config_data.client_model_configs) == 1
-    assert response.user_status.cascade_model_config_data.client_model_configs[0].label == "Claude Sonnet 4.5"
+    assert (
+        response.user_status.cascade_model_config_data.client_model_configs[0].label
+        == "Claude Sonnet 4.5"
+    )

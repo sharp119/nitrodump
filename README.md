@@ -10,8 +10,8 @@ A Python CLI tool to quickly dump Antigravity/Codeium account status, credits, a
 - **Credit tracking**: Shows available prompt and flow credits
 - **Model rate limits**: Lists all AI models with current rate limit status and reset times
 - **Multiple output formats**: Table, JSON, or raw network response
-- **Scheduled monitoring**: Built-in scheduler for automatic status checks (30min to 12hr intervals)
-- **Desktop notifications**: macOS notifications with status updates
+- **Scheduled monitoring**: Built-in scheduler for automatic status checks (1min to 12hr intervals)
+- **Desktop notifications**: macOS notifications with status updates (via schedule or `--notify` flag)
 - **Logging**: Timestamped logs of all scheduled runs
 
 ## Requirements
@@ -58,6 +58,9 @@ nitrodump --json
 
 # Raw network response (direct from API, camelCase keys)
 nitrodump --raw
+
+# Send a native macOS desktop notification with the summarized status
+nitrodump --notify
 ```
 
 ### Default Output (Table)
@@ -163,8 +166,8 @@ Use `--raw` to see **all** available fields from the API, including those not sh
 Set up automatic status checks at regular intervals:
 
 ```bash
-# Schedule every 30 minutes
-nitrodump schedule set 30m
+# Schedule every 1 minute
+nitrodump schedule set 1m
 
 # Schedule every 2 hours
 nitrodump schedule set 2h
@@ -190,7 +193,7 @@ When scheduled, nitrodump will:
 
 #### Interval Format
 
-- `30m` = 30 minutes (minimum)
+- `1m` = 1 minute (minimum)
 - `1h` = 1 hour
 - `2h` = 2 hours
 - `12h` = 12 hours (maximum)

@@ -26,10 +26,12 @@ def format_user_status(status: UserStatus) -> str:
         flow_credits = status.available_flow_credits or "N/A"
         max_flow = status.plan_status.plan_info.monthly_flow_credits or "N/A"
 
-        lines.extend([
-            f"Prompt: {prompt_credits} / {max_prompt}",
-            f"Flow:   {flow_credits} / {max_flow}",
-        ])
+        lines.extend(
+            [
+                f"Prompt: {prompt_credits} / {max_prompt}",
+                f"Flow:   {flow_credits} / {max_flow}",
+            ]
+        )
 
     return "\n".join(lines)
 
@@ -63,9 +65,12 @@ def format_model_table(configs: List[ClientModelConfig]) -> str:
     reset_padding = 2
 
     total_width = (
-        model_width + model_padding
-        + remaining_width + remaining_padding
-        + reset_width + reset_padding
+        model_width
+        + model_padding
+        + remaining_width
+        + remaining_padding
+        + reset_width
+        + reset_padding
         + 4  # borders: │ │ │
     )
 
@@ -96,13 +101,29 @@ def format_model_table(configs: List[ClientModelConfig]) -> str:
     lines = []
 
     # Top border
-    lines.append("┌" + "─" * (model_width + 2) + "┬" + "─" * (remaining_width + 2) + "┬" + "─" * (reset_width + 2) + "┐")
+    lines.append(
+        "┌"
+        + "─" * (model_width + 2)
+        + "┬"
+        + "─" * (remaining_width + 2)
+        + "┬"
+        + "─" * (reset_width + 2)
+        + "┐"
+    )
 
     # Header row
     lines.append(data_row(headers[0], headers[1], headers[2]))
 
     # Header separator
-    lines.append("├" + "─" * (model_width + 2) + "┼" + "─" * (remaining_width + 2) + "┼" + "─" * (reset_width + 2) + "┤")
+    lines.append(
+        "├"
+        + "─" * (model_width + 2)
+        + "┼"
+        + "─" * (remaining_width + 2)
+        + "┼"
+        + "─" * (reset_width + 2)
+        + "┤"
+    )
 
     # Data rows
     for config in sorted_configs:
@@ -111,7 +132,15 @@ def format_model_table(configs: List[ClientModelConfig]) -> str:
         lines.append(data_row(config.label, remaining, reset))
 
     # Bottom border
-    lines.append("└" + "─" * (model_width + 2) + "┴" + "─" * (remaining_width + 2) + "┴" + "─" * (reset_width + 2) + "┘")
+    lines.append(
+        "└"
+        + "─" * (model_width + 2)
+        + "┴"
+        + "─" * (remaining_width + 2)
+        + "┴"
+        + "─" * (reset_width + 2)
+        + "┘"
+    )
 
     return "\n".join(lines)
 

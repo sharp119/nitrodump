@@ -16,6 +16,11 @@ LOG_FILE = Path.home() / "nitrodump.log"
 LABEL = "com.nitrodump.scheduler"
 
 
+def get_uid() -> str:
+    """Get the current user's UID for launchctl bootout/bootstrap."""
+    return str(os.getuid())
+
+
 def get_log_path() -> Path:
     """Get the log file path."""
     return LOG_FILE
@@ -153,49 +158,32 @@ def create_plist(interval_seconds: int, executable: str, log_file: Path) -> dict
 LOG_FILE="{log_file}"
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
-# Run nitrodump and capture output
-OUTPUT=$({executable} 2>&1)
-EXIT_CODE=$?
+# Run nitrodump with notifications and capture output
+OUTPUT=$({executable} --notify 2>&1)
 
 # Add timestamp to output
 echo "[$TIMESTAMP]" >> "$LOG_FILE"
 echo "$OUTPUT" >> "$LOG_FILE"
 echo "" >> "$LOG_FILE"
-
-# Send notification
-if [ $EXIT_CODE -eq 0 ]; then
-    # Extract key info for notification
-    USER_INFO=$(echo "$OUTPUT" | grep "User:" | head -1)
-    PLAN_INFO=$(echo "$OUTPUT" | grep "Plan:" | head -1)
-
-    # Get prompt credits if available
-    PROMPT_INFO=$(echo "$OUTPUT" | grep "Prompt:" | head -1)
-
-    NOTIF_MESSAGE="Codeium Status: $PLAN_INFO"
-    if [ -n "$PROMPT_INFO" ]; then
-        NOTIF_MESSAGE="$NOTIF_MESSAGE
-$PROMPT_INFO"
-    fi
-
-    osascript -e 'display notification "'"$NOTIF_MESSAGE"'" with title "Nitrodump" sound name "Glass"'
-else
-    osascript -e 'display notification "Failed to get Codeium status" with title "Nitrodump" sound name "Basso"'
-fi
 """
 
     wrapper_path = LAUNCH_AGENTS_DIR / "nitrodump_wrapper.sh"
 
-    return {
-        "Label": LABEL,
-        "ProgramArguments": ["/bin/bash", str(wrapper_path)],
-        "StartInterval": interval_seconds,
-        "RunAtLoad": True,
-        "StandardOutPath": str(log_file),
-        "StandardErrorPath": str(log_file.with_suffix(".err")),
-        "EnvironmentVariables": {
-            "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:/opt/homebrew/sbin",
+    return (
+        {
+            "Label": LABEL,
+            "ProgramArguments": ["/bin/bash", str(wrapper_path)],
+            "StartInterval": interval_seconds,
+            "RunAtLoad": True,
+            "StandardOutPath": str(log_file),
+            "StandardErrorPath": str(log_file.with_suffix(".err")),
+            "EnvironmentVariables": {
+                "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:/opt/homebrew/sbin",
+            },
         },
-    }, wrapper_script, wrapper_path
+        wrapper_script,
+        wrapper_path,
+    )
 
 
 def schedule(interval: str) -> bool:
@@ -214,25 +202,25 @@ def schedule(interval: str) -> bool:
     executable = get_nitrodump_executable()
     if not executable:
         raise RuntimeError(
-            "nitrodump executable not found. Install it first with:\n"
-            "  uv tool install nitrodump"
+            "nitrodump executable not found. Install it first with:\n  uv tool install nitrodump"
         )
 
     interval_seconds = interval_to_seconds(interval)
 
-    # Validate interval range (30 minutes to 12 hours)
-    if interval_seconds < 1800:
-        raise ValueError("Interval must be at least 30 minutes (30m)")
+    # Validate interval range (1 minute to 12 hours)
+    if interval_seconds < 60:
+        raise ValueError("Interval must be at least 1 minute (1m)")
     if interval_seconds > 43200:
         raise ValueError("Interval must be at most 12 hours (12h)")
+
+    # Unload any existing schedule first so launchd drops the cached interval
+    unschedule()
 
     # Ensure LaunchAgents directory exists
     LAUNCH_AGENTS_DIR.mkdir(parents=True, exist_ok=True)
 
     # Create plist and wrapper
-    plist_dict, wrapper_script, wrapper_path = create_plist(
-        interval_seconds, executable, LOG_FILE
-    )
+    plist_dict, wrapper_script, wrapper_path = create_plist(interval_seconds, executable, LOG_FILE)
 
     # Write wrapper script
     with open(wrapper_path, "w") as f:
@@ -246,16 +234,17 @@ def schedule(interval: str) -> bool:
     with open(plist_path, "wb") as f:
         plistlib.dump(plist_dict, f)
 
-    # Load the agent
+    # Load the agent using modern bootstrap
+    uid = get_uid()
     result = subprocess.run(
-        ["launchctl", "load", str(plist_path)],
+        ["launchctl", "bootstrap", f"gui/{uid}", str(plist_path)],
         capture_output=True,
         text=True,
     )
 
-    if result.returncode != 0:
+    if result.returncode != 0 and "already bootstrapped" not in result.stderr.lower():
         print(f"Warning: Could not load LaunchAgent: {result.stderr}")
-        print(f"You may need to run: launchctl load {plist_path}")
+        print(f"You may need to run: launchctl bootstrap gui/{uid} {plist_path}")
         return False
 
     return True
@@ -273,11 +262,12 @@ def unschedule() -> bool:
         print("No scheduled job found.")
         return True
 
-    # Unload the agent first
+    # Use modern bootout
+    uid = get_uid()
     subprocess.run(
-        ["launchctl", "unload", str(plist_path)],
+        ["launchctl", "bootout", f"gui/{uid}/{LABEL}"],
         capture_output=True,
-        text=True,
+        check=False,
     )
 
     # Remove files

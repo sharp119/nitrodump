@@ -48,7 +48,7 @@ class CodeiumClient:
         """
         try:
             result = subprocess.run(
-                ["pgrep", "-f", self.PROCESS_NAME],
+                ["/usr/bin/pgrep", "-f", self.PROCESS_NAME],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -72,7 +72,7 @@ class CodeiumClient:
         """
         try:
             result = subprocess.run(
-                ["ps", "-ww", "-p", str(pid), "-o", "command="],
+                ["/bin/ps", "-ww", "-p", str(pid), "-o", "command="],
                 capture_output=True,
                 text=True,
                 check=False,
@@ -100,7 +100,7 @@ class CodeiumClient:
         """
         try:
             result = subprocess.run(
-                ["lsof", "-nP", "-iTCP", "-sTCP:LISTEN"],
+                ["/usr/sbin/lsof", "-nP", "-iTCP", "-sTCP:LISTEN"],
                 capture_output=True,
                 text=True,
                 check=False,

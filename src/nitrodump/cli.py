@@ -23,15 +23,29 @@ def cmd_run(args) -> int:
 
     try:
         # Raw mode - output the raw network response
-        if getattr(args, 'raw', False):
+        if getattr(args, "raw", False):
             data, response = client.get_user_status(return_raw=True)
             print(json.dumps(data, indent=2))
             return 0
 
         # JSON mode - output structured JSON from Pydantic model
-        elif getattr(args, 'json', False):
+        elif getattr(args, "json", False):
             response = client.get_user_status()
             print(response.model_dump_json(indent=2))
+            return 0
+
+        # Notify mode - send a macOS notification
+        elif getattr(args, "notify", False):
+            from nitrodump.notifier import send_success_notification, send_error_notification
+
+            try:
+                response = client.get_user_status()
+                send_success_notification(response.user_status)
+                print(format_full_status(response.user_status))
+            except Exception as e:
+                send_error_notification(str(e))
+                print(f"Error: {e}", file=sys.stderr)
+                return 1
             return 0
 
         # Default - formatted table output
@@ -94,7 +108,7 @@ def cmd_schedule(args) -> int:
                 print("\nTo set up a schedule:")
                 print("  nitrodump schedule set <interval>")
                 print("\nExamples:")
-                print("  nitrodump schedule set 30m   # Every 30 minutes")
+                print("  nitrodump schedule set 1m    # Every minute")
                 print("  nitrodump schedule set 2h    # Every 2 hours")
                 print("  nitrodump schedule set 12h   # Every 12 hours")
                 return 0
@@ -181,6 +195,11 @@ def parse_args(argv=None):
         action="store_true",
         help="Output raw network response JSON",
     )
+    output_group.add_argument(
+        "--notify",
+        action="store_true",
+        help="Send a desktop notification instead of printing to stdout",
+    )
 
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -198,7 +217,7 @@ def parse_args(argv=None):
     set_parser = schedule_subparsers.add_parser("set", help="Set up a schedule")
     set_parser.add_argument(
         "interval",
-        help="Interval between runs (e.g., 30m, 2h, 12h). Min: 30m, Max: 12h",
+        help="Interval between runs (e.g., 1m, 2h, 12h). Min: 1m, Max: 12h",
     )
     set_parser.set_defaults(func=cmd_schedule)
 
