@@ -4,7 +4,9 @@ import subprocess
 from typing import Optional
 
 
-def send_notification(title: str, message: str, subtitle: Optional[str] = None, sound: str = "Glass") -> bool:
+def send_notification(
+    title: str, message: str, subtitle: Optional[str] = None, sound: str = "Glass"
+) -> bool:
     """Send a macOS desktop notification.
 
     Args:
