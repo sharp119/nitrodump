@@ -1,6 +1,6 @@
 # nitrodump
 
-A Python CLI tool to quickly dump Antigravity/Codeium account status, credits, and AI model rate limits. Features built-in scheduling for automated monitoring on macOS.
+A Python CLI tool to quickly dump Antigravity/Codeium account status, credits, and AI model rate limits. Features built-in scheduling, desktop notifications, and a native macOS menu bar app for at-a-glance monitoring.
 
 ## Features
 
@@ -12,6 +12,7 @@ A Python CLI tool to quickly dump Antigravity/Codeium account status, credits, a
 - **Multiple output formats**: Table, JSON, or raw network response
 - **Scheduled monitoring**: Built-in scheduler for automatic status checks (1min to 12hr intervals)
 - **Desktop notifications**: macOS notifications with status updates (via schedule or `--notify` flag)
+- **Menu bar app**: Native macOS menu bar icon with live model status, grouped by provider
 - **Logging**: Timestamped logs of all scheduled runs
 
 ## Requirements
@@ -240,6 +241,50 @@ nitrodump schedule remove
 ✓ Scheduled job removed
 ```
 
+### Menu Bar App
+
+A native macOS menu bar icon that shows live model quota status, grouped by provider.
+
+```bash
+# Start the menu bar app (persists across reboots)
+nitrodump menubar start
+
+# Check if it's running
+nitrodump menubar status
+
+# Stop and remove from startup
+nitrodump menubar stop
+```
+
+Once started, you'll see a **⚡️ Nd** icon in your macOS menu bar. Click it to see:
+
+```
+👤  Sharp Mouse
+💎  Google AI Pro
+────────────────────
+☁️  ── Gemini ──
+  3.1 Pro ↑    ▓▓▓▓▓▓▓▓ 100%
+  3.1 Pro ↓    ▓▓▓▓▓▓▓▓ 100%
+  3 Flash      ▓▓▓▓▓▓▓▓ 100%
+  Gemini resets: Feb 22, 20:55
+  Gemini reset in: 4h 57m
+🤖  ── Claude ──
+  Sonnet 4.6   ▓▓▓▓▓░░░ 60%
+  Opus 4.6     ▓▓▓▓▓░░░ 60%
+  Claude resets: Feb 26, 12:34
+  Claude reset in: 92h 36m
+⚙️  ── Other ──
+  GPT-OSS 120B ▓▓▓▓▓░░░ 60%
+  Other resets: Feb 26, 12:34
+  Other reset in: 92h 36m
+────────────────────
+Quit
+```
+
+- **Auto-refreshes** every 30 seconds in the background
+- **Quit** unloads the launch agent (same as `nitrodump menubar stop`)
+- Uses macOS `launchd` for reliable background persistence
+
 ## How It Works
 
 ### One-Time Check
@@ -301,7 +346,9 @@ nitrodump/
 │       ├── formatter.py     # Output formatting
 │       ├── models.py        # Pydantic data models
 │       ├── scheduler.py     # macOS launchd scheduler
-│       └── notifier.py      # macOS notification utilities
+│       ├── notifier.py      # macOS notification utilities
+│       ├── menubar.py       # Native menu bar app (rumps)
+│       └── menubar_manager.py  # launchd agent for menu bar
 ├── tests/
 │   ├── conftest.py          # Pytest config
 │   ├── test_client.py       # Client tests

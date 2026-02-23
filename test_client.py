@@ -1,13 +1,12 @@
 import sys
+import traceback
 from nitrodump.client import CodeiumClient
+
 try:
-    c = CodeiumClient()
-    print("PID:", c.pid)
-    print("Port:", c.port)
-    print("Token:", c.token)
-    status = c.get_user_status(return_raw=True)
-    print(status[0])
+    client = CodeiumClient()
+    response = client.get_user_status()
+    print("Success:")
+    print(response.model_dump_json(indent=2))
 except Exception as e:
-    print(repr(e))
-    import traceback
+    print("Caught Exception:", file=sys.stderr)
     traceback.print_exc()

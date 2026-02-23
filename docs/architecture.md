@@ -78,6 +78,17 @@
 - Uses `osascript` for system notifications
 - Sound alerts for success/error states
 
+### `menubar.py`
+- Native macOS menu bar app using `rumps`
+- Displays live model quotas grouped by provider (Gemini/Claude/Other)
+- Auto-refreshes every 30 seconds via `@rumps.timer`
+- Unicode progress bars and relative reset times
+
+### `menubar_manager.py`
+- Creates and manages a macOS LaunchAgent for the menu bar app
+- Handles `start` / `stop` / `status` commands
+- Configures the agent with `RunAtLoad` and `KeepAlive` for persistence
+
 ## Data Flow
 
 ### One-Time Status Check

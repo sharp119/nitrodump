@@ -8,6 +8,8 @@ from datetime import datetime
 from nitrodump.client import CodeiumClient, CodeiumServerError
 from nitrodump.formatter import format_full_status
 from nitrodump import scheduler
+from nitrodump import menubar_manager
+from nitrodump import menubar
 
 
 def cmd_run(args) -> int:
@@ -144,6 +146,56 @@ def cmd_schedule(args) -> int:
     return 1
 
 
+def cmd_menubar(args) -> int:
+    """Handle menubar-related commands.
+
+    Args:
+        args: Parsed arguments.
+
+    Returns:
+        Exit code (0 for success, 1 for error).
+    """
+    if args.action == "start":
+        try:
+            menubar_manager.start()
+            print("✓ Menu bar app started. Look for the '⚡️ Nd' icon in your macOS menu bar.")
+            return 0
+        except Exception as e:
+            print(f"Error starting menu bar app: {e}", file=sys.stderr)
+            return 1
+
+    elif args.action == "stop":
+        try:
+            menubar_manager.stop()
+            print("✓ Menu bar app stopped")
+            return 0
+        except Exception as e:
+            print(f"Error stopping menu bar app: {e}", file=sys.stderr)
+            return 1
+
+    elif args.action == "status":
+        info = menubar_manager.status()
+        if info["running"]:
+            print("Menu bar app is running (loaded in launchd)")
+        else:
+            print("Menu bar app is NOT running")
+        return 0
+
+    return 1
+
+
+def cmd_menubar_run(args) -> int:
+    """Internal command to run the rumps loop."""
+    try:
+        menubar.run_menubar_app()
+        return 0
+    except Exception as e:
+        print(f"Error running menu bar: {e}", file=sys.stderr)
+        print(f"Python Executable: {sys.executable}", file=sys.stderr)
+        print(f"Python Path: {sys.path}", file=sys.stderr)
+        return 1
+
+
 def _describe_interval(interval: str) -> str:
     """Get a human-readable description of an interval.
 
@@ -239,6 +291,29 @@ def parse_args(argv=None):
         help="Number of lines to show (default: 20)",
     )
     logs_parser.set_defaults(func=cmd_schedule)
+
+    # menubar subcommand
+    menubar_parser = subparsers.add_parser(
+        "menubar",
+        help="Manage the macOS native menu bar app",
+    )
+    menubar_subparsers = menubar_parser.add_subparsers(dest="action", help="Menubar actions")
+    
+    # menubar start
+    mb_start = menubar_subparsers.add_parser("start", help="Start the menu bar app")
+    mb_start.set_defaults(func=cmd_menubar)
+    
+    # menubar stop
+    mb_stop = menubar_subparsers.add_parser("stop", help="Stop the menu bar app")
+    mb_stop.set_defaults(func=cmd_menubar)
+    
+    # menubar status
+    mb_status = menubar_subparsers.add_parser("status", help="Show menu bar app status")
+    mb_status.set_defaults(func=cmd_menubar)
+
+    # hidden internal command to run the menu bar app loop
+    menubar_run_parser = subparsers.add_parser("menubar-run", help=argparse.SUPPRESS)
+    menubar_run_parser.set_defaults(func=cmd_menubar_run)
 
     return parser.parse_args(argv)
 
